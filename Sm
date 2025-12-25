@@ -1,0 +1,216 @@
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+-- === 1. สร้าง UI ===
+local sg = Instance.new("ScreenGui")
+sg.Name = "CompleteUltimateGui"
+sg.Parent = Player:WaitForChild("PlayerGui")
+sg.ResetOnSpawn = false
+sg.DisplayOrder = 999
+
+local frame = Instance.new("Frame", sg)
+frame.Size = UDim2.new(0, 220, 0, 410)
+frame.Position = UDim2.new(0.5, -110, 0.5, -205)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Visible = false
+frame.ZIndex = 10
+
+local toggleBtn = Instance.new("TextButton", sg)
+toggleBtn.Size = UDim2.new(0, 100, 0, 45)
+toggleBtn.Position = UDim2.new(0, 20, 0.4, 0)
+toggleBtn.Text = "OPEN MENU"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.ZIndex = 11
+
+local function toggleUI()
+    frame.Visible = not frame.Visible
+    toggleBtn.Text = frame.Visible and "CLOSE MENU" or "OPEN MENU"
+end
+toggleBtn.Activated:Connect(toggleUI)
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.L then toggleUI() end
+end)
+
+local function createBtn(text, pos)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0, 200, 0, 40)
+    btn.Position = pos
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    btn.ZIndex = 12
+    return btn
+end
+
+-- [สร้างปุ่ม]
+local airWalkBtn = createBtn("AirWalk: OFF", UDim2.new(0, 10, 0, 20))
+local slowFallBtn = createBtn("Slow Fall: OFF", UDim2.new(0, 10, 0, 70))
+local espBtn = createBtn("ESP: OFF", UDim2.new(0, 10, 0, 120))
+local hitboxBtn = createBtn("Hitbox: OFF", UDim2.new(0, 10, 0, 170))
+local autoWalkBtn = createBtn("Auto Walk: OFF", UDim2.new(0, 10, 0, 220))
+
+local speedInput = Instance.new("TextBox", frame)
+speedInput.Size = UDim2.new(0, 200, 0, 40)
+speedInput.Position = UDim2.new(0, 10, 0, 270)
+speedInput.PlaceholderText = "Speed (16)"
+speedInput.Text = "16"
+speedInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+speedInput.TextColor3 = Color3.new(0, 1, 1)
+speedInput.Font = Enum.Font.SourceSansBold
+speedInput.TextSize = 18
+speedInput.ZIndex = 12
+
+-- === 2. ตัวแปรสถานะ ===
+local airWalkEnabled = false
+local slowFallEnabled = false
+local espActive = false
+local hbEnabled = false
+local autoWalkEnabled = false
+local currentSpeed = 16
+
+-- พื้นสำหรับ AirWalk
+local airPart = Instance.new("Part")
+airPart.Size = Vector3.new(7, 1, 7)
+airPart.Transparency = 0.7
+airPart.Anchored = true
+airPart.CanCollide = true
+airPart.BrickColor = BrickColor.new("Cyan")
+
+-- === 3. เชื่อมต่อปุ่มและใส่ระบบทำงาน ===
+
+-- [AirWalk]
+airWalkBtn.Activated:Connect(function()
+    airWalkEnabled = not airWalkEnabled
+    airWalkBtn.Text = airWalkEnabled and "AirWalk: ON" or "AirWalk: OFF"
+    airWalkBtn.BackgroundColor3 = airWalkEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(70, 70, 70)
+    airPart.Parent = airWalkEnabled and game.Workspace or nil
+end)
+
+-- [Slow Fall]
+slowFallBtn.Activated:Connect(function()
+    slowFallEnabled = not slowFallEnabled
+    slowFallBtn.Text = slowFallEnabled and "Slow Fall: ON" or "Slow Fall: OFF"
+    slowFallBtn.BackgroundColor3 = slowFallEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(70, 70, 70)
+end)
+
+-- [ESP]
+espBtn.Activated:Connect(function()
+    espActive = not espActive
+    espBtn.Text = espActive and "ESP: ON" or "ESP: OFF"
+    espBtn.BackgroundColor3 = espActive and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(70, 70, 70)
+end)
+
+-- [Hitbox]
+hitboxBtn.Activated:Connect(function()
+    hbEnabled = not hbEnabled
+    hitboxBtn.Text = hbEnabled and "Hitbox: ON" or "Hitbox: OFF"
+    hitboxBtn.BackgroundColor3 = hbEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(70, 70, 70)
+    -- ถ้าปิด ให้คืนค่าขนาด Hitbox ปกติ
+    if not hbEnabled then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                p.Character.HumanoidRootPart.Transparency = 1
+            end
+        end
+    end
+end)
+
+-- [Auto Walk]
+autoWalkBtn.Activated:Connect(function()
+    autoWalkEnabled = not autoWalkEnabled
+    autoWalkBtn.Text = autoWalkEnabled and "Auto Walk: ON" or "Auto Walk: OFF"
+    autoWalkBtn.BackgroundColor3 = autoWalkEnabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(70, 70, 70)
+end)
+
+-- [Speed Input]
+speedInput.FocusLost:Connect(function()
+    currentSpeed = tonumber(speedInput.Text) or 16
+end)
+
+-- === 4. ลูปการทำงานหลัก (Heartbeat / RenderStepped) ===
+
+RunService.Heartbeat:Connect(function()
+    -- ทำงาน ESP
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= Player and p.Character then
+            local h = p.Character:FindFirstChild("ESPH")
+            if espActive then
+                if not h then
+                    h = Instance.new("Highlight", p.Character)
+                    h.Name = "ESPH"
+                    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                end
+                h.Enabled = true
+            else
+                if h then h.Enabled = false end
+            end
+            
+            -- ชื่อ ESP (Billboard)
+            local tag = p.Character:FindFirstChild("ESPNameTag")
+            if espActive then
+                if not tag and p.Character:FindFirstChild("Head") then
+                    local bb = Instance.new("BillboardGui", p.Character)
+                    bb.Name = "ESPNameTag"; bb.AlwaysOnTop = true; bb.Size = UDim2.new(0,200,0,50); bb.StudsOffset = Vector3.new(0,3,0); bb.Adornee = p.Character.Head
+                    local lbl = Instance.new("TextLabel", bb); lbl.Size = UDim2.new(1,0,1,0); lbl.BackgroundTransparency = 1; lbl.Text = p.DisplayName or p.Name; lbl.TextColor3 = Color3.new(1,1,0); lbl.TextSize = 16
+                elseif tag then tag.Enabled = true end
+            else
+                if tag then tag.Enabled = false end
+            end
+
+            -- ทำงาน Hitbox
+            if hbEnabled and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.Size = Vector3.new(15, 15, 15)
+                p.Character.HumanoidRootPart.Transparency = 0.8
+                p.Character.HumanoidRootPart.CanCollide = false
+            end
+        end
+    end
+
+    -- ทำงาน Slow Fall
+    if slowFallEnabled and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+        local root = Player.Character.HumanoidRootPart
+        if root.AssemblyLinearVelocity.Y < -4 then
+            root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, -5, root.AssemblyLinearVelocity.Z)
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+        local hum = Player.Character.Humanoid
+        local root = Player.Character:FindFirstChild("HumanoidRootPart")
+        
+        -- ความเร็ว
+        hum.WalkSpeed = currentSpeed
+        
+        -- Auto Walk
+        if autoWalkEnabled then hum:Move(Vector3.new(0, 0, -1), true) end
+        
+        -- AirWalk
+        if airWalkEnabled and root then
+            airPart.Position = root.Position + Vector3.new(0, -3.5, 0)
+        end
+    end
+end)
+
+-- === ระบบลากหน้าต่าง (Drag) ===
+local dragging, dragStart, startPos
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = frame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input) dragging = false end)
